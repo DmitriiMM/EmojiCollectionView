@@ -2,7 +2,8 @@ import UIKit
 
 final class EmojiViewController: UIViewController {
     private var visibleEmojies: [EmojiMix] = []
-    let emojiFactory = EmojiMixFactory()
+    private let emojiFactory = EmojiMixFactory()
+    private let emojiStore = EmojiMixStore()
 
     private let collectionView: UICollectionView = {
         let collectionView = UICollectionView(
@@ -23,16 +24,14 @@ final class EmojiViewController: UIViewController {
 //            navBar.topItem?.setLeftBarButton(leftButton, animated: false)
         }
         setupCollectionView()
+        emojiStore.delegate = self
+        visibleEmojies = emojiStore.emojiMixes
     }
 
     @objc
     private func addNextEmoji() {
         let newMix = emojiFactory.makeNewMix()
-        let nextEmojiIndex = visibleEmojies.count
-        visibleEmojies.append(newMix)
-        collectionView.performBatchUpdates {
-            collectionView.insertItems(at: [IndexPath(item: nextEmojiIndex, section: 0)])
-        }
+        try! emojiStore.addNewEmojiMix(newMix)
     }
 
 //    @objc
@@ -62,17 +61,11 @@ final class EmojiViewController: UIViewController {
 }
 
 extension EmojiViewController: UICollectionViewDataSource {
-    func collectionView(
-        _ collectionView: UICollectionView,
-        numberOfItemsInSection section: Int
-    ) -> Int {
+    func collectionView(_ collectionView: UICollectionView, numberOfItemsInSection section: Int) -> Int {
         return visibleEmojies.count
     }
     
-    func collectionView(
-        _ collectionView: UICollectionView,
-        cellForItemAt indexPath: IndexPath
-    ) -> UICollectionViewCell {
+    func collectionView(_ collectionView: UICollectionView, cellForItemAt indexPath: IndexPath) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! EmojiCollectionViewCell
         
         cell.titleLabel.text = visibleEmojies[indexPath.row].emojies
@@ -88,19 +81,31 @@ extension EmojiViewController: UICollectionViewDelegate {
 }
 
 extension EmojiViewController: UICollectionViewDelegateFlowLayout {
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        sizeForItemAt indexPath: IndexPath
-    ) -> CGSize {
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, sizeForItemAt indexPath: IndexPath) -> CGSize {
         return CGSize(width: collectionView.bounds.width / 2 - 5, height: 50)
     }
     
-    func collectionView(
-        _ collectionView: UICollectionView,
-        layout collectionViewLayout: UICollectionViewLayout,
-        minimumInteritemSpacingForSectionAt section: Int
-    ) -> CGFloat {
+    func collectionView(_ collectionView: UICollectionView, layout collectionViewLayout: UICollectionViewLayout, minimumInteritemSpacingForSectionAt section: Int) -> CGFloat {
         return 10
+    }
+}
+
+extension EmojiViewController: EmojiMixStoreDelegate {
+    func store(_ store: EmojiMixStore, didUpdate update: EmojiMixStoreUpdate) {
+        visibleEmojies = emojiStore.emojiMixes
+        collectionView.performBatchUpdates {
+            let insertedIndexPaths = update.insertedIndexes.map { IndexPath(item: $0, section: 0) }
+            let deletedIndexPaths = update.deletedIndexes.map { IndexPath(item: $0, section: 0) }
+            let updatedIndexPaths = update.updatedIndexes.map { IndexPath(item: $0, section: 0) }
+            collectionView.insertItems(at: insertedIndexPaths)
+            collectionView.insertItems(at: deletedIndexPaths)
+            collectionView.insertItems(at: updatedIndexPaths)
+            for move in update.movedIndexes {
+                collectionView.moveItem(
+                    at: IndexPath(item: move.oldIndex, section: 0),
+                    to: IndexPath(item: move.newIndex, section: 0)
+                )
+            }
+        }
     }
 }
