@@ -1,13 +1,8 @@
 import UIKit
 
 final class EmojiViewController: UIViewController {
-    private let emojies = [
-        "🍇", "🍈", "🍉", "🍊", "🍋", "🍌", "🍍", "🥭", "🍎", "🍏", "🍐", "🍒",
-        "🍓", "🫐", "🥝", "🍅", "🫒", "🥥", "🥑", "🍆", "🥔", "🥕", "🌽", "🌶️",
-        "🫑", "🥒", "🥬", "🥦", "🧄", "🧅", "🍄",
-    ]
-
-    private var visibleEmojies: [String] = []
+    private var visibleEmojies: [EmojiMix] = []
+    let emojiFactory = EmojiMixFactory()
 
     private let collectionView: UICollectionView = {
         let collectionView = UICollectionView(
@@ -24,33 +19,32 @@ final class EmojiViewController: UIViewController {
             let rightButton = UIBarButtonItem(barButtonSystemItem: .add, target: self, action: #selector(addNextEmoji))
             navBar.topItem?.setRightBarButton(rightButton, animated: false)
 
-            let leftButton = UIBarButtonItem(barButtonSystemItem: .undo, target: self, action: #selector(removeLastEmoji))
-            navBar.topItem?.setLeftBarButton(leftButton, animated: false)
+//            let leftButton = UIBarButtonItem(barButtonSystemItem: .undo, target: self, action: #selector(removeLastEmoji))
+//            navBar.topItem?.setLeftBarButton(leftButton, animated: false)
         }
         setupCollectionView()
     }
 
     @objc
     private func addNextEmoji() {
-        guard visibleEmojies.count < emojies.count else { return }
-
+        let newMix = emojiFactory.makeNewMix()
         let nextEmojiIndex = visibleEmojies.count
-        visibleEmojies.append(emojies[nextEmojiIndex])
+        visibleEmojies.append(newMix)
         collectionView.performBatchUpdates {
             collectionView.insertItems(at: [IndexPath(item: nextEmojiIndex, section: 0)])
         }
     }
 
-    @objc
-    private func removeLastEmoji() {
-        guard visibleEmojies.count > 0 else { return }
-
-        let lastEmojiIndex = visibleEmojies.count - 1
-        visibleEmojies.removeLast()
-        collectionView.performBatchUpdates {
-            collectionView.deleteItems(at: [IndexPath(item: lastEmojiIndex, section: 0)])
-        }
-    }
+//    @objc
+//    private func removeLastEmoji() {
+//        guard visibleEmojies.count > 0 else { return }
+//
+//        let lastEmojiIndex = visibleEmojies.count - 1
+//        visibleEmojies.removeLast()
+//        collectionView.performBatchUpdates {
+//            collectionView.deleteItems(at: [IndexPath(item: lastEmojiIndex, section: 0)])
+//        }
+//    }
 
     private func setupCollectionView() {
         collectionView.translatesAutoresizingMaskIntoConstraints = false
@@ -81,7 +75,9 @@ extension EmojiViewController: UICollectionViewDataSource {
     ) -> UICollectionViewCell {
         let cell = collectionView.dequeueReusableCell(withReuseIdentifier: "Cell", for: indexPath) as! EmojiCollectionViewCell
         
-        cell.titleLabel.text = visibleEmojies[indexPath.row]
+        cell.titleLabel.text = visibleEmojies[indexPath.row].emojies
+        cell.contentView.backgroundColor = visibleEmojies[indexPath.row].backgroundColor
+        
         return cell
     }
 }
@@ -97,7 +93,7 @@ extension EmojiViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         sizeForItemAt indexPath: IndexPath
     ) -> CGSize {
-        return CGSize(width: collectionView.bounds.width / 2, height: 50)
+        return CGSize(width: collectionView.bounds.width / 2 - 5, height: 50)
     }
     
     func collectionView(
@@ -105,6 +101,6 @@ extension EmojiViewController: UICollectionViewDelegateFlowLayout {
         layout collectionViewLayout: UICollectionViewLayout,
         minimumInteritemSpacingForSectionAt section: Int
     ) -> CGFloat {
-        return 0
+        return 10
     }
 }
